@@ -13,3 +13,7 @@ services:
         sync: false
       - key: GOOGLE_SEARCH_ENGINE_ID
         value: f60d7c389de5240cd
+      - key: USE_ADVANCED_AGENT
+        value: "true"
+      - key: ENABLE_ENHANCED_ARXIV
+        value: "true"

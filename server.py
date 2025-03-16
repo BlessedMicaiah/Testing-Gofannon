@@ -10,6 +10,10 @@ import logging
 import traceback
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if present
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -21,27 +25,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import the enhanced ArXiv search
-try:
-    logger.info("Importing EnhancedArxivSearch...")
-    from enhanced_arxiv import EnhancedArxivSearch
-    enhanced_search = EnhancedArxivSearch()
-    logger.info("Successfully imported EnhancedArxivSearch")
-except ImportError as e:
-    logger.warning(f"Failed to import EnhancedArxivSearch: {str(e)}")
-    enhanced_search = None
+# Check environment variables for feature flags
+USE_ADVANCED_AGENT = os.getenv("USE_ADVANCED_AGENT", "true").lower() == "true"
+ENABLE_ENHANCED_ARXIV = os.getenv("ENABLE_ENHANCED_ARXIV", "true").lower() == "true"
 
-# Try to import the AdvancedAgent, but fall back to SimplifiedAgent if it fails
-try:
-    logger.info("Attempting to import AdvancedAgent...")
+logger.info(f"USE_ADVANCED_AGENT: {USE_ADVANCED_AGENT}")
+logger.info(f"ENABLE_ENHANCED_ARXIV: {ENABLE_ENHANCED_ARXIV}")
+
+# Import the enhanced ArXiv search if enabled
+enhanced_search = None
+if ENABLE_ENHANCED_ARXIV:
+    try:
+        logger.info("Importing EnhancedArxivSearch...")
+        from enhanced_arxiv import EnhancedArxivSearch
+        enhanced_search = EnhancedArxivSearch()
+        logger.info("Successfully imported EnhancedArxivSearch")
+    except ImportError as e:
+        logger.warning(f"Failed to import EnhancedArxivSearch: {str(e)}")
+        enhanced_search = None
+
+# Import the appropriate agent based on configuration
+if USE_ADVANCED_AGENT:
+    logger.info("Importing AdvancedAgent...")
     from advanced_agent import AdvancedAgent
     agent_class = AdvancedAgent
     logger.info("Successfully imported AdvancedAgent")
-except ImportError as e:
-    logger.warning(f"Failed to import AdvancedAgent: {str(e)}")
-    logger.info("Falling back to SimplifiedAgent")
+else:
+    logger.info("Importing SimplifiedAgent (USE_ADVANCED_AGENT is disabled)...")
     from simplified_agent import SimplifiedAgent
     agent_class = SimplifiedAgent
+    logger.info("Successfully imported SimplifiedAgent")
 
 app = Flask(__name__, static_folder='advanced_agent_interface/backend/static')
 CORS(app)  # Enable CORS for all routes
@@ -129,14 +142,7 @@ def search_papers():
             return jsonify({'results': results})
         
         # Fall back to the agent's search if enhanced search is not available
-        elif isinstance(agent, SimplifiedAgent) if 'SimplifiedAgent' in globals() else False:
-            # SimplifiedAgent
-            logger.info(f"Processing search query with SimplifiedAgent")
-            search_query = "search " + query
-            result = agent.process_query(search_query)
-            logger.info(f"Search response: {result}")
-            return jsonify({'results': result})
-        else:
+        elif isinstance(agent, AdvancedAgent):
             # AdvancedAgent
             logger.info(f"Processing search query with AdvancedAgent")
             try:
