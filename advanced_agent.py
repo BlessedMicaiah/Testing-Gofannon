@@ -175,8 +175,30 @@ class AdvancedAgent:
         """
         print(f"Simulating reasoning for: '{query}'")
         
+        # Special responses for testing and common queries
+        query_lower = query.lower()
+        
+        if query_lower in ["testing", "test", "hello", "hi"]:
+            return """I can help you with various types of questions:
+            
+1. Math questions - Try asking "Calculate 25 + 17" or "What is 8 times 9?"
+2. Research paper searches - Try asking "Find research papers about quantum computing"
+3. General knowledge questions - Try asking "Tell me about artificial intelligence"
+
+What would you like to know about?"""
+        
+        # For very short queries that might be just a single word
+        elif len(query_lower.split()) <= 2:
+            return f"""I notice you've asked about "{query}". I can provide more information if you ask a more specific question.
+
+Try asking something like:
+1. "Tell me about {query}"
+2. "What is {query} used for?"
+3. "Find research papers about {query}"
+4. "Calculate 25 + 17" (for math questions)"""
+        
         # For an egg query, provide actual information
-        if "egg" in query.lower():
+        if "egg" in query_lower:
             reasoning = (
                 f"I'll explain what an egg is:\n\n"
                 f"Step 1: Basic Definition\n"
@@ -205,7 +227,7 @@ class AdvancedAgent:
             base_info = ""
             
         # Simple simulation of reasoning steps
-        if query.lower() == "testing":
+        if query.lower() == "gear":
             return """I can help you with various types of questions:
             
 1. Math questions - Try asking "Calculate 25 + 17" or "What is 8 times 9?"
