@@ -7,6 +7,119 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+        
+        /* Research paper styling */
+        .message-content h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .message-content h4 {
+            color: #3498db;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .message-content strong, .message-content b {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .message-content a {
+            color: #3498db;
+            text-decoration: none;
+            border-bottom: 1px dotted #3498db;
+            transition: all 0.2s ease;
+        }
+        
+        .message-content a:hover {
+            color: #2980b9;
+            border-bottom: 1px solid #2980b9;
+        }
+        
+        .message-content hr {
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
+            margin: 20px 0;
+        }
+        
+        /* Paper result card styling */
+        .message-content .paper-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .message-content .paper-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message-content .paper-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .message-content .paper-meta-item {
+            background-color: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #555;
+        }
+        
+        .message-content .paper-summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-style: italic;
+            color: #555;
+        }
+        
+        .message-content .paper-links {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-content .paper-link {
+            display: inline-block;
+            padding: 6px 12px;
+            background-color: #3498db;
+            color: white !important;
+            border-radius: 4px;
+            text-decoration: none !important;
+            border-bottom: none !important;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+        
+        .message-content .paper-link:hover {
+            background-color: #2980b9;
+            border-bottom: none !important;
+        }
+        
         body {
             font-family: 'Söhne', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
             margin: 0;
@@ -397,51 +510,134 @@
         
         // Function to handle tool button clicks
         function handleToolClick(toolType) {
-            let prefix = '';
+            // Get the input element
+            const inputElement = document.querySelector('.message-input:focus') || document.getElementById('message-input');
             
-            switch(toolType) {
-                case 'search':
-                    prefix = 'Search for papers about: ';
-                    break;
-                case 'reason':
-                    prefix = 'Explain: ';
-                    break;
-                default:
-                    prefix = '';
+            if (toolType === 'search') {
+                // Show a search input modal
+                const searchQuery = prompt('Enter your research paper search query:');
+                if (searchQuery && searchQuery.trim() !== '') {
+                    // Show loading indicator
+                    showLoadingIndicator();
+                    
+                    // Add user message to UI
+                    const userMessage = `Search for research papers: ${searchQuery}`;
+                    addMessageToUI('user', userMessage);
+                    
+                    // Get the base URL dynamically based on environment
+                    const baseUrl = window.location.origin;
+                    
+                    // Send search query to backend
+                    fetch(`${baseUrl}/api/search`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            query: searchQuery,
+                            max_results: 5,
+                            include_abstracts: true
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Remove loading indicator
+                        removeLoadingIndicator();
+                        
+                        // Format search results for display
+                        let formattedResults = '';
+                        
+                        if (data.results && typeof data.results === 'object' && Array.isArray(data.results)) {
+                            // Handle the formatted results from EnhancedArxivSearch
+                            formattedResults = "### Research Paper Results\n\n";
+                            
+                            data.results.forEach((result, index) => {
+                                // Start paper card
+                                formattedResults += `<div class="paper-card">\n`;
+                                
+                                // Paper title
+                                formattedResults += `#### ${index + 1}. ${result.title}\n`;
+                                
+                                // Paper metadata
+                                formattedResults += `<div class="paper-meta">\n`;
+                                
+                                if (result.authors) {
+                                    formattedResults += `<span class="paper-meta-item">👥 ${result.authors}</span>\n`;
+                                }
+                                
+                                if (result.published) {
+                                    formattedResults += `<span class="paper-meta-item">📅 ${result.published}</span>\n`;
+                                }
+                                
+                                if (result.categories) {
+                                    formattedResults += `<span class="paper-meta-item">🏷️ ${result.categories}</span>\n`;
+                                }
+                                
+                                if (result.citation_count) {
+                                    formattedResults += `<span class="paper-meta-item">📚 Citations: ${result.citation_count}</span>\n`;
+                                }
+                                
+                                formattedResults += `</div>\n`;
+                                
+                                // Paper summary
+                                formattedResults += `<div class="paper-summary">${result.summary}</div>\n`;
+                                
+                                // Paper links
+                                formattedResults += `<div class="paper-links">\n`;
+                                
+                                if (result.link) {
+                                    formattedResults += `<a href="${result.link}" target="_blank" rel="noopener noreferrer" class="paper-link">📄 View Paper</a>\n`;
+                                }
+                                
+                                if (result.enhanced_link && result.enhanced_link !== result.link) {
+                                    formattedResults += `<a href="${result.enhanced_link}" target="_blank" rel="noopener noreferrer" class="paper-link">🔍 Enhanced Info</a>\n`;
+                                }
+                                
+                                formattedResults += `</div>\n`;
+                                
+                                // End paper card
+                                formattedResults += `</div>\n\n`;
+                            });
+                            
+                            if (data.results.length === 0) {
+                                formattedResults = "No research papers found for your search query.";
+                            }
+                        } else {
+                            // Handle string results from SimplifiedAgent
+                            formattedResults = data.results || data.error || 'No results found.';
+                        }
+                        
+                        // Add response to UI
+                        addMessageToUI('assistant', formattedResults);
+                    })
+                    .catch(error => {
+                        // Remove loading indicator
+                        removeLoadingIndicator();
+                        
+                        // Add error message
+                        addMessageToUI('assistant', 'Sorry, there was a problem with the search. Please try again.');
+                        console.error('Error:', error);
+                    });
+                }
+            } else if (toolType === 'math') {
+                // Insert math template
+                const cursorPos = inputElement.selectionStart;
+                const textBefore = inputElement.value.substring(0, cursorPos);
+                const textAfter = inputElement.value.substring(cursorPos);
+                inputElement.value = textBefore + "Calculate: " + textAfter;
+                inputElement.focus();
+                inputElement.selectionStart = cursorPos + 11;
+                inputElement.selectionEnd = cursorPos + 11;
+            } else if (toolType === 'reasoning') {
+                // Insert reasoning template
+                const cursorPos = inputElement.selectionStart;
+                const textBefore = inputElement.value.substring(0, cursorPos);
+                const textAfter = inputElement.value.substring(cursorPos);
+                inputElement.value = textBefore + "Reason about: " + textAfter;
+                inputElement.focus();
+                inputElement.selectionStart = cursorPos + 13;
+                inputElement.selectionEnd = cursorPos + 13;
             }
-            
-            // If welcome screen is visible, hide it and show the input area
-            if (welcomeScreen.style.display !== 'none') {
-                welcomeScreen.style.display = 'none';
-                bottomInputArea.style.display = 'block';
-            }
-            
-            // Set the prefix in the input field and focus it
-            messageInput.value = prefix;
-            messageInput.focus();
-            
-            // Place cursor at the end of the text
-            messageInput.selectionStart = messageInput.selectionEnd = messageInput.value.length;
-        }
-        
-        // Function to send message
-        function sendMessage(message) {
-            if (!message) return;
-            
-            // Hide welcome screen if visible
-            if (welcomeScreen.style.display !== 'none') {
-                welcomeScreen.style.display = 'none';
-                bottomInputArea.style.display = 'block';
-            }
-            
-            // Add message to UI
-            addMessageToUI('user', message);
-            
-            // Show loading indicator
-            showLoadingIndicator();
-            
-            // Send to backend
-            sendToBackend(message);
         }
         
         // Function to add message to UI
@@ -535,122 +731,24 @@
             });
         }
         
-        // Function to handle tool button clicks
-        function handleToolClick(toolType) {
-            // Get the input element
-            const inputElement = document.querySelector('.message-input:focus') || document.getElementById('message-input');
+        // Function to send message
+        function sendMessage(message) {
+            if (!message) return;
             
-            if (toolType === 'search') {
-                // Show a search input modal
-                const searchQuery = prompt('Enter your research paper search query:');
-                if (searchQuery && searchQuery.trim() !== '') {
-                    // Show loading indicator
-                    showLoadingIndicator();
-                    
-                    // Add user message to UI
-                    const userMessage = `Search for research papers: ${searchQuery}`;
-                    addMessageToUI('user', userMessage);
-                    
-                    // Get the base URL dynamically based on environment
-                    const baseUrl = window.location.origin;
-                    
-                    // Send search query to backend
-                    fetch(`${baseUrl}/api/search`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            query: searchQuery,
-                            max_results: 5,
-                            include_abstracts: true
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Remove loading indicator
-                        removeLoadingIndicator();
-                        
-                        // Format search results for display
-                        let formattedResults = '';
-                        
-                        if (data.results && typeof data.results === 'object' && Array.isArray(data.results)) {
-                            // Handle the formatted results from EnhancedArxivSearch
-                            formattedResults = "### Research Paper Results\n\n";
-                            
-                            data.results.forEach((result, index) => {
-                                formattedResults += `#### ${index + 1}. ${result.title}\n`;
-                                
-                                if (result.authors) {
-                                    formattedResults += `**Authors:** ${result.authors}\n`;
-                                }
-                                
-                                if (result.published) {
-                                    formattedResults += `**Published:** ${result.published}\n`;
-                                }
-                                
-                                if (result.categories) {
-                                    formattedResults += `**Categories:** ${result.categories}\n`;
-                                }
-                                
-                                if (result.citation_count) {
-                                    formattedResults += `**Citations:** ${result.citation_count}\n`;
-                                }
-                                
-                                formattedResults += `\n${result.summary}\n\n`;
-                                
-                                // Add links
-                                if (result.enhanced_link && result.enhanced_link !== result.link) {
-                                    formattedResults += `[View Paper](${result.link}) | [Enhanced Info](${result.enhanced_link})\n\n`;
-                                } else if (result.link) {
-                                    formattedResults += `[View Paper](${result.link})\n\n`;
-                                }
-                                
-                                // Add separator between papers
-                                if (index < data.results.length - 1) {
-                                    formattedResults += `---\n\n`;
-                                }
-                            });
-                            
-                            if (data.results.length === 0) {
-                                formattedResults = "No research papers found for your search query.";
-                            }
-                        } else {
-                            // Handle string results from SimplifiedAgent
-                            formattedResults = data.results || data.error || 'No results found.';
-                        }
-                        
-                        // Add response to UI
-                        addMessageToUI('assistant', formattedResults);
-                    })
-                    .catch(error => {
-                        // Remove loading indicator
-                        removeLoadingIndicator();
-                        
-                        // Add error message
-                        addMessageToUI('assistant', 'Sorry, there was a problem with the search. Please try again.');
-                        console.error('Error:', error);
-                    });
-                }
-            } else if (toolType === 'math') {
-                // Insert math template
-                const cursorPos = inputElement.selectionStart;
-                const textBefore = inputElement.value.substring(0, cursorPos);
-                const textAfter = inputElement.value.substring(cursorPos);
-                inputElement.value = textBefore + "Calculate: " + textAfter;
-                inputElement.focus();
-                inputElement.selectionStart = cursorPos + 11;
-                inputElement.selectionEnd = cursorPos + 11;
-            } else if (toolType === 'reasoning') {
-                // Insert reasoning template
-                const cursorPos = inputElement.selectionStart;
-                const textBefore = inputElement.value.substring(0, cursorPos);
-                const textAfter = inputElement.value.substring(cursorPos);
-                inputElement.value = textBefore + "Reason about: " + textAfter;
-                inputElement.focus();
-                inputElement.selectionStart = cursorPos + 13;
-                inputElement.selectionEnd = cursorPos + 13;
+            // Hide welcome screen if visible
+            if (welcomeScreen.style.display !== 'none') {
+                welcomeScreen.style.display = 'none';
+                bottomInputArea.style.display = 'block';
             }
+            
+            // Add message to UI
+            addMessageToUI('user', message);
+            
+            // Show loading indicator
+            showLoadingIndicator();
+            
+            // Send to backend
+            sendToBackend(message);
         }
         
         // Focus welcome input on load

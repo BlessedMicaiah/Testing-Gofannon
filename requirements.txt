@@ -5,13 +5,19 @@ werkzeug==2.0.1
 python-dotenv==0.19.1
 requests==2.26.0
 
-# Gofannon library and its dependencies
-# If gofannon is installed via pip, uncomment the following line
-# gofannon
+# XML parsing for ArXiv API
+lxml==4.9.2
+beautifulsoup4==4.11.1
 
-# For Google Search integration (optional)
+# For Google Search integration
 google-api-python-client==2.31.0
+
+# For OpenAI integration (if needed)
+openai==1.0.0
 
 # For development and testing
 pytest==6.2.5
 pytest-cov==2.12.1
+
+# Logging and error handling
+logging==0.4.9.6
