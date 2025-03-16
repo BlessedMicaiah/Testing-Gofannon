@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Agent Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Söhne', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background-color: white;
+            color: #353740;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background-color: white;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo-text {
+            font-weight: 600;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .temporary-btn {
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #ff7043;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 0 15%;
+            scroll-behavior: smooth;
+        }
+        
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        .welcome-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #353740;
+        }
+        
+        .message {
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .message-content {
+            max-width: 100%;
+            line-height: 1.5;
+        }
+        
+        .user-message .message-content {
+            background-color: white;
+        }
+        
+        .assistant-message {
+            background-color: #f7f7f8;
+            width: 100%;
+        }
+        
+        .assistant-message .message-content {
+            padding: 0 15%;
+        }
+        
+        .input-area {
+            padding: 12px 15%;
+            background-color: white;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .input-container {
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            background-color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        
+        .message-input {
+            width: 100%;
+            padding: 12px 50px 12px 16px;
+            border: none;
+            background-color: transparent;
+            color: #353740;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .input-buttons {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .input-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #6e6e80;
+            background-color: transparent;
+            border: none;
+        }
+        
+        .input-button:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .send-button {
+            background-color: #10a37f;
+            color: white;
+        }
+        
+        .send-button:hover {
+            background-color: #0d8c6d;
+        }
+        
+        .input-tools {
+            display: flex;
+            margin-top: 8px;
+            gap: 8px;
+        }
+        
+        .tool-button {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            background-color: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            color: #6e6e80;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .tool-button:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #6e6e80;
+            padding: 8px 0;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        /* Loading animation */
+        .loading-dots {
+            display: inline-flex;
+        }
+        
+        .loading-dots span {
+            width: 4px;
+            height: 4px;
+            margin: 0 2px;
+            background-color: #353740;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .chat-container, .input-area {
+                padding-left: 5%;
+                padding-right: 5%;
+            }
+            
+            .assistant-message .message-content {
+                padding-left: 5%;
+                padding-right: 5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <div class="logo-container">
+            <i class="fas fa-robot"></i>
+            <span class="logo-text">Advanced Agent</span>
+        </div>
+        <div class="user-menu">
+            <div class="temporary-btn">Temporary</div>
+            <div class="user-avatar">U</div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div id="chat-container" class="chat-container">
+            <div id="welcome-screen" class="welcome-screen">
+                <h1 class="welcome-title">What can I help with?</h1>
+                
+                <div class="input-area" style="border:none; margin-top: 20px; width: 100%; max-width: 600px;">
+                    <div class="input-container">
+                        <textarea id="welcome-input" class="message-input" placeholder="Ask anything" rows="1"></textarea>
+                    </div>
+                    <div class="input-tools">
+                        <button class="tool-button" data-tool="search">
+                            <i class="fas fa-search"></i>
+                            <span>Search</span>
+                        </button>
+                        <button class="tool-button" data-tool="reason">
+                            <i class="fas fa-brain"></i>
+                            <span>Reason</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat messages will appear here -->
+        </div>
+        
+        <div class="input-area" id="bottom-input-area" style="display: none;">
+            <div class="input-container">
+                <textarea id="message-input" class="message-input" placeholder="Send a message..." rows="1"></textarea>
+                <div class="input-buttons">
+                    <button id="send-button" class="input-button send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="input-tools">
+                <button class="tool-button" data-tool="plus">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="tool-button" data-tool="search">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </button>
+                <button class="tool-button" data-tool="reason">
+                    <i class="fas fa-brain"></i>
+                    <span>Reason</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        Advanced Agent can make mistakes. Check important info.
+    </div>
+
+    <script>
+        // DOM Elements
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const welcomeInput = document.getElementById('welcome-input');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatContainer = document.getElementById('chat-container');
+        const bottomInputArea = document.getElementById('bottom-input-area');
+        
+        // Auto-resize textarea
+        function setupTextareaResize(textarea) {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                if (this.scrollHeight > 200) {
+                    this.style.height = '200px';
+                    this.style.overflowY = 'auto';
+                } else {
+                    this.style.overflowY = 'hidden';
+                }
+            });
+            
+            // Send message on Enter (but allow Shift+Enter for new line)
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(this.value.trim());
+                    this.value = '';
+                    this.style.height = 'auto';
+                }
+            });
+        }
+        
+        setupTextareaResize(welcomeInput);
+        setupTextareaResize(messageInput);
+        
+        // Send button click
+        sendButton.addEventListener('click', function() {
+            const message = messageInput.value.trim();
+            if (message) {
+                sendMessage(message);
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        });
+        
+        // Welcome input handling
+        welcomeInput.addEventListener('focus', function() {
+            // When user focuses on welcome input, show the real input area
+            bottomInputArea.style.display = 'block';
+            messageInput.focus();
+            
+            // Hide welcome screen
+            welcomeScreen.style.display = 'none';
+        });
+        
+        // Tool button event listeners
+        document.querySelectorAll('.tool-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const toolType = this.getAttribute('data-tool');
+                if (toolType) {
+                    handleToolClick(toolType);
+                }
+            });
+        });
+        
+        // Function to handle tool button clicks
+        function handleToolClick(toolType) {
+            let prefix = '';
+            
+            switch(toolType) {
+                case 'search':
+                    prefix = 'Search for papers about: ';
+                    break;
+                case 'reason':
+                    prefix = 'Explain: ';
+                    break;
+                default:
+                    prefix = '';
+            }
+            
+            // If welcome screen is visible, hide it and show the input area
+            if (welcomeScreen.style.display !== 'none') {
+                welcomeScreen.style.display = 'none';
+                bottomInputArea.style.display = 'block';
+            }
+            
+            // Set the prefix in the input field and focus it
+            messageInput.value = prefix;
+            messageInput.focus();
+            
+            // Place cursor at the end of the text
+            messageInput.selectionStart = messageInput.selectionEnd = messageInput.value.length;
+        }
+        
+        // Function to send message
+        function sendMessage(message) {
+            if (!message) return;
+            
+            // Hide welcome screen if visible
+            if (welcomeScreen.style.display !== 'none') {
+                welcomeScreen.style.display = 'none';
+                bottomInputArea.style.display = 'block';
+            }
+            
+            // Add message to UI
+            addMessageToUI('user', message);
+            
+            // Show loading indicator
+            showLoadingIndicator();
+            
+            // Send to backend
+            sendToBackend(message);
+        }
+        
+        // Function to add message to UI
+        function addMessageToUI(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // Process content for markdown-like formatting
+            const formattedContent = formatMessageContent(content);
+            contentDiv.innerHTML = formattedContent;
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Function to format message content with basic markdown-like features
+        function formatMessageContent(content) {
+            // Replace URLs with clickable links
+            content = content.replace(
+                /(https?:\/\/[^\s]+)/g, 
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+            
+            // Replace line breaks with <br> tags
+            content = content.replace(/\n/g, '<br>');
+            
+            return content;
+        }
+        
+        // Function to show loading indicator
+        function showLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant-message';
+            loadingDiv.id = 'loading-message';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            const loadingDots = document.createElement('div');
+            loadingDots.className = 'loading-dots';
+            loadingDots.innerHTML = '<span></span><span></span><span></span>';
+            
+            contentDiv.appendChild(loadingDots);
+            loadingDiv.appendChild(contentDiv);
+            
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Function to remove loading indicator
+        function removeLoadingIndicator() {
+            const loadingMessage = document.getElementById('loading-message');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+        
+        // Function to send message to backend
+        function sendToBackend(message) {
+            fetch('http://localhost:5000/api/agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Remove loading indicator
+                removeLoadingIndicator();
+                
+                // Add response to UI
+                addMessageToUI('assistant', data.response || data.error || 'Sorry, I encountered an error processing your request.');
+            })
+            .catch(error => {
+                // Remove loading indicator
+                removeLoadingIndicator();
+                
+                // Add error message
+                addMessageToUI('assistant', 'Sorry, there was a problem connecting to the server. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+        
+        // Focus welcome input on load
+        welcomeInput.focus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Agent Simple UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .tab-active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tab {
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-right: 10px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .hidden {
+            display: none;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .response {
+            background-color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-slate-800">Advanced AI Agent Interface</h1>
+            <p class="text-slate-600 mt-1">
+                Interact with your AI agent using natural language
+            </p>
+        </header>
+        
+        <div class="mb-6">
+            <div class="tab tab-active" data-tab="agent">AI Agent</div>
+            <div class="tab" data-tab="research">Research</div>
+            <div class="tab" data-tab="tools">Available Tools</div>
+        </div>
+        
+        <div id="agent-tab" class="tab-content">
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">Ask the AI Agent</h2>
+                <p class="mb-4">The agent can perform math operations, reasoning tasks, and search for academic papers</p>
+                <div>
+                    <textarea id="agent-query" rows="4" placeholder="Example: 'Calculate 25 + 17', 'Explain how rainbows work', or 'Find recent research papers about quantum computing'"></textarea>
+                    <button id="submit-agent-query">Submit Query</button>
+                </div>
+            </div>
+            
+            <div id="agent-response-container" class="card hidden">
+                <h2 class="text-xl font-bold mb-4">Agent Response</h2>
+                <div id="agent-response" class="response"></div>
+                <button id="copy-response" class="mt-4">Copy Response</button>
+            </div>
+        </div>
+        
+        <div id="research-tab" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">Research Paper Search</h2>
+                <div class="flex gap-3 mb-6">
+                    <input id="research-query" placeholder="Enter research topic..." />
+                    <button id="submit-research">Search</button>
+                </div>
+                <div id="research-results"></div>
+            </div>
+        </div>
+        
+        <div id="tools-tab" class="tab-content hidden">
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">Available Tools</h2>
+                <p class="mb-4">The following tools are available through the agent</p>
+                <ul class="list-disc pl-5 space-y-4">
+                    <li>
+                        <strong>Math Tools</strong>: Addition, Subtraction, Multiplication, Division, Exponents
+                    </li>
+                    <li>
+                        <strong>Reasoning Tools</strong>: Sequential Chain-of-Thought reasoning
+                    </li>
+                    <li>
+                        <strong>Knowledge Tools</strong>: ArXiv research paper search
+                    </li>
+                    <li>
+                        <strong>Optional Tools</strong> (require API keys):
+                        <ul class="list-disc pl-5 mt-2">
+                            <li>OpenAI API for advanced reasoning</li>
+                            <li>Google Search API for web search</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Toggle tab active state
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('tab-active'));
+                tab.classList.add('tab-active');
+                
+                // Toggle tab content visibility
+                const tabId = tab.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+            });
+        });
+
+        // Agent query functionality
+        document.getElementById('submit-agent-query').addEventListener('click', async () => {
+            const query = document.getElementById('agent-query').value.trim();
+            if (!query) return;
+            
+            const responseContainer = document.getElementById('agent-response-container');
+            const responseElement = document.getElementById('agent-response');
+            
+            responseElement.textContent = 'Processing query...';
+            responseContainer.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                responseElement.textContent = data.response || data.error || 'No response received';
+            } catch (error) {
+                responseElement.textContent = `Error: ${error.message || 'Could not connect to server'}`;
+            }
+        });
+
+        // Research functionality
+        document.getElementById('submit-research').addEventListener('click', async () => {
+            const query = document.getElementById('research-query').value.trim();
+            if (!query) return;
+            
+            const resultsContainer = document.getElementById('research-results');
+            resultsContainer.innerHTML = '<p>Searching...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                
+                if (data.results && data.results.length) {
+                    resultsContainer.innerHTML = '';
+                    data.results.forEach(paper => {
+                        const paperEl = document.createElement('div');
+                        paperEl.className = 'card';
+                        paperEl.innerHTML = `
+                            <h3 class="font-bold text-lg">${paper.title}</h3>
+                            <p class="text-sm text-gray-600 mt-2">${paper.summary}</p>
+                            ${paper.link ? `<a href="${paper.link}" class="text-blue-500 hover:text-blue-700 mt-2 inline-block" target="_blank">Read More →</a>` : ''}
+                        `;
+                        resultsContainer.appendChild(paperEl);
+                    });
+                } else {
+                    resultsContainer.innerHTML = '<p>No results found. Try a different query.</p>';
+                }
+            } catch (error) {
+                resultsContainer.innerHTML = `<p>Error: ${error.message || 'Could not connect to server'}</p>`;
+            }
+        });
+
+        // Copy response functionality
+        document.getElementById('copy-response').addEventListener('click', () => {
+            const responseText = document.getElementById('agent-response').textContent;
+            navigator.clipboard.writeText(responseText)
+                .then(() => alert('Response copied to clipboard'))
+                .catch(err => alert('Could not copy to clipboard: ' + err));
+        });
+    </script>
+</body>
+</html>
