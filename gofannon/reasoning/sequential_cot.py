@@ -1,5 +1,5 @@
 import json
-from openai import OpenAI
+from ..compatibility import OpenAI
 from gofannon.reasoning.base import ReasoningTool
 from ..config import FunctionRegistry
 import logging
@@ -74,4 +74,3 @@ response should be a properly formatted json with one field `steps` which contai
             return response
         except json.JSONDecodeError:
             return {"error": "Failed to decode the response as JSON."}
-

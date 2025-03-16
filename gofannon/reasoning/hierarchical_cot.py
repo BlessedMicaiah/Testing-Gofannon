@@ -1,7 +1,7 @@
 import json
 import logging
-from openai import OpenAI, APIError
-from.base import ReasoningTool
+from ..compatibility import OpenAI, APIError
+from gofannon.reasoning.base import ReasoningTool
 from ..config import FunctionRegistry
 
 logger = logging.getLogger(__name__)

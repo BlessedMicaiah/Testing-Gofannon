@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import json
-from openai import OpenAI
+# Import our compatibility layer first
+from ..compatibility import OpenAI
 from gofannon.base import BaseTool
 
 sample_depth_chart = [

@@ -13,7 +13,7 @@ arxiv==1.4.2
 requests==2.26.0
 
 # For OpenAI integration (optional, for reasoning capabilities)
-openai==0.27.0
+openai>=1.0.0
 
 # For Google Search integration (optional)
 google-api-python-client==2.31.0

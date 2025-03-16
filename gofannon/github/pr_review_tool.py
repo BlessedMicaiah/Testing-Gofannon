@@ -1,9 +1,10 @@
-import os
 import json
 import logging
-import importlib.util
+import os
+import re
+import time
+from ..compatibility import OpenAI
 from github import Github
-from openai import OpenAI
 from gofannon.config import FunctionRegistry
 from gofannon.base import BaseTool
 
