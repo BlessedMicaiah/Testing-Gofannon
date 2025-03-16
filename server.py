@@ -1,32 +1,70 @@
 #!/usr/bin/env python3
 """
-Simple Backend server for AI Agent Interface
-This script creates a Flask server that interfaces with the simplified_agent.py functionality
+Enhanced Backend server for AI Agent Interface
+This script creates a Flask server that interfaces with the advanced_agent.py functionality
+with a focus on Google Search for research paper results
 """
 import os
+import sys
+import logging
+import traceback
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from simplified_agent import SimplifiedAgent
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Import the enhanced ArXiv search
+try:
+    logger.info("Importing EnhancedArxivSearch...")
+    from enhanced_arxiv import EnhancedArxivSearch
+    enhanced_search = EnhancedArxivSearch()
+    logger.info("Successfully imported EnhancedArxivSearch")
+except ImportError as e:
+    logger.warning(f"Failed to import EnhancedArxivSearch: {str(e)}")
+    enhanced_search = None
+
+# Try to import the AdvancedAgent, but fall back to SimplifiedAgent if it fails
+try:
+    logger.info("Attempting to import AdvancedAgent...")
+    from advanced_agent import AdvancedAgent
+    agent_class = AdvancedAgent
+    logger.info("Successfully imported AdvancedAgent")
+except ImportError as e:
+    logger.warning(f"Failed to import AdvancedAgent: {str(e)}")
+    logger.info("Falling back to SimplifiedAgent")
+    from simplified_agent import SimplifiedAgent
+    agent_class = SimplifiedAgent
 
 app = Flask(__name__, static_folder='advanced_agent_interface/backend/static')
 CORS(app)  # Enable CORS for all routes
 
-# Initialize the Simplified Agent
-agent = SimplifiedAgent()
+# Initialize the Agent
+logger.info(f"Initializing {agent_class.__name__}...")
+agent = agent_class()
 
 @app.route('/')
 def index():
     """Serve the simple UI HTML file as the default endpoint"""
+    logger.info("Serving index page")
     return send_from_directory('advanced_agent_interface/backend/static', 'simple-ui.html')
     
 @app.route('/api')
 def api_info():
     """Return API information"""
+    logger.info("API info requested")
     api_endpoints = {
         "message": "Welcome to the AI Agent API",
         "endpoints": {
             "/api/agent": "Submit a query to the agent",
-            "/api/search": "Search for information",
+            "/api/search": "Search for research papers",
             "/api/tools": "Get information about available tools"
         }
     }
@@ -38,54 +76,146 @@ def query_agent():
     data = request.json
     query = data.get('query', '')
     
+    logger.info(f"Agent query received: {query}")
+    
     if not query:
+        logger.warning("Empty query received")
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        # Process the query using our simplified agent
-        result = agent.process_query(query)
+        # Process the query using our agent
+        logger.info(f"Processing query with {agent_class.__name__}")
+        
+        # Use the appropriate method based on the agent type
+        if hasattr(agent, 'process_query'):
+            # SimplifiedAgent
+            result = agent.process_query(query)
+        else:
+            # AdvancedAgent
+            result = agent.run(query)
+            
+        logger.info(f"Agent response: {result}")
         return jsonify({'response': result})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error processing query: {str(e)}", exc_info=True)
+        error_trace = traceback.format_exc()
+        logger.error(f"Traceback: {error_trace}")
+        return jsonify({'error': str(e), 'traceback': error_trace}), 500
 
 @app.route('/api/search', methods=['POST'])
 def search_papers():
-    """Route to search for information"""
+    """Route to search for research papers"""
     data = request.json
     query = data.get('query', '')
+    max_results = data.get('max_results', 5)
+    include_abstracts = data.get('include_abstracts', True)
+    
+    logger.info(f"Research paper search query received: {query}")
     
     if not query:
+        logger.warning("Empty search query received")
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        # Use our simplified agent's search functionality
-        search_query = "search " + query
-        result = agent.process_query(search_query)
+        # Use the enhanced ArXiv search if available
+        if enhanced_search:
+            logger.info(f"Processing search query with EnhancedArxivSearch")
+            results = enhanced_search.search(
+                query=query,
+                max_results=max_results,
+                include_abstracts=include_abstracts
+            )
+            logger.info(f"Enhanced search returned {len(results)} results")
+            return jsonify({'results': results})
         
-        # Return the raw result for now
-        return jsonify({'results': result})
+        # Fall back to the agent's search if enhanced search is not available
+        elif isinstance(agent, SimplifiedAgent) if 'SimplifiedAgent' in globals() else False:
+            # SimplifiedAgent
+            logger.info(f"Processing search query with SimplifiedAgent")
+            search_query = "search " + query
+            result = agent.process_query(search_query)
+            logger.info(f"Search response: {result}")
+            return jsonify({'results': result})
+        else:
+            # AdvancedAgent
+            logger.info(f"Processing search query with AdvancedAgent")
+            try:
+                # Parse the query for knowledge search
+                parsed_query = agent._parse_knowledge_query(query)
+                logger.info(f"Parsed knowledge query: {parsed_query}")
+                
+                # Execute the search
+                results = agent.execute_knowledge(parsed_query)
+                logger.info(f"Got {len(results.get('entries', []))} search results")
+                
+                # Format the results for frontend
+                formatted_results = []
+                if 'entries' in results:
+                    for entry in results['entries']:
+                        formatted_results.append({
+                            'title': entry.get('title', 'Untitled'),
+                            'authors': ', '.join(entry.get('authors', ['Unknown'])),
+                            'summary': entry.get('summary', 'No summary available'),
+                            'link': entry.get('link', ''),
+                            'published': entry.get('published', '')
+                        })
+                
+                return jsonify({'results': formatted_results})
+            except Exception as inner_e:
+                logger.error(f"Error in AdvancedAgent search: {str(inner_e)}", exc_info=True)
+                # Fall back to text query if knowledge search fails
+                search_query = "search for " + query
+                result = agent.run(search_query)
+                logger.info(f"Fallback search response: {result}")
+                return jsonify({'results': result})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error processing search query: {str(e)}", exc_info=True)
+        error_trace = traceback.format_exc()
+        logger.error(f"Traceback: {error_trace}")
+        return jsonify({'error': str(e), 'traceback': error_trace}), 500
 
 @app.route('/api/tools', methods=['GET'])
 def get_tools():
     """Route to get available tools information"""
+    logger.info("Tools info requested")
     try:
-        tools_info = {
-            'available': agent.available_tools
-        }
+        # Get tools info based on the agent type
+        if hasattr(agent, 'available_tools'):
+            # SimplifiedAgent
+            tools_info = {
+                'available': agent.available_tools
+            }
+        else:
+            # AdvancedAgent
+            tools_info = {
+                'math': list(agent.math_tools.keys()) if hasattr(agent, 'math_tools') else [],
+                'reasoning': list(agent.reasoning_tools.keys()) if hasattr(agent, 'reasoning_tools') else [],
+                'knowledge': list(agent.knowledge_tools.keys()) if hasattr(agent, 'knowledge_tools') else [],
+                'available': {
+                    'math': True,
+                    'reasoning': hasattr(agent, 'reasoning_tools'),
+                    'knowledge': hasattr(agent, 'knowledge_tools'),
+                    'enhanced_search': enhanced_search is not None
+                }
+            }
+            
+        logger.info(f"Tools info: {tools_info}")
         return jsonify(tools_info)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error getting tools info: {str(e)}", exc_info=True)
+        error_trace = traceback.format_exc()
+        return jsonify({'error': str(e), 'traceback': error_trace}), 500
 
 @app.route('/static/<path:path>')
 def serve_static(path):
     """Serve static files"""
+    logger.info(f"Serving static file: {path}")
     return send_from_directory('advanced_agent_interface/backend/static', path)
 
 if __name__ == '__main__':
-    print("Starting Simple Agent Backend Server...")
+    logger.info(f"Starting {agent_class.__name__} Backend Server...")
     # Get port from environment variable for Render compatibility
     port = int(os.environ.get("PORT", 5000))
     # In production, don't use debug mode and bind to 0.0.0.0
+    logger.info(f"Server will run on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False if os.environ.get("RENDER") else True)
