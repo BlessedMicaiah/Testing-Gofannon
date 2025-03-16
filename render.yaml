@@ -3,7 +3,7 @@ services:
     name: advanced-agent-interface
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: cd advanced_agent_interface/backend && python server.py
+    startCommand: cd advanced_agent_interface/backend && python simple_server.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
@@ -12,4 +12,4 @@ services:
       - key: GOOGLE_SEARCH_API_KEY
         sync: false
       - key: GOOGLE_SEARCH_ENGINE_ID
-        sync: false
+        value: f60d7c389de5240cd
