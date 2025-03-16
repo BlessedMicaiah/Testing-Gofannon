@@ -113,9 +113,9 @@ class AdvancedAgent:
                                                  "what do you know about"]):
             return "search"
         
-        # Default to knowledge if we can't determine
+        # Default to reasoning for general questions
         else:
-            return "knowledge"
+            return "reasoning"
     
     def _parse_knowledge_query(self, query):
         """Parse a knowledge query for ArXiv"""
@@ -205,17 +205,26 @@ class AdvancedAgent:
             base_info = ""
             
         # Simple simulation of reasoning steps
-        reasoning = (
-            f"{base_info}I'll break down my thought process for answering: '{query}'\n\n"
-            f"Step 1: First, I need to understand what the query is asking for.\n"
-            f"  The query is about: {query}\n\n"
-            f"Step 2: I'll identify what information or calculations are needed.\n"
-            f"  For this query, I would need to {self._get_reasoning_action(query)}\n\n"
-            f"Step 3: Now I can formulate my response based on the analysis.\n"
-            f"  {self._get_reasoning_conclusion(query)}\n"
-        )
-        
-        return reasoning
+        if query.lower() == "testing":
+            return """I can help you with various types of questions:
+            
+1. Math questions - Try asking "Calculate 25 + 17" or "What is 8 times 9?"
+2. Research paper searches - Try asking "Find research papers about quantum computing"
+3. General knowledge questions - Try asking "Tell me about artificial intelligence"
+
+What would you like to know about?"""
+        else:
+            reasoning = (
+                f"{base_info}I'll break down my thought process for answering: '{query}'\n\n"
+                f"Step 1: First, I need to understand what the query is asking for.\n"
+                f"  The query is about: {query}\n\n"
+                f"Step 2: I'll identify what information or calculations are needed.\n"
+                f"  For this query, I would need to {self._get_reasoning_action(query)}\n\n"
+                f"Step 3: Now I can formulate my response based on the analysis.\n"
+                f"  {self._get_reasoning_conclusion(query)}\n"
+            )
+            
+            return reasoning
     
     def _get_reasoning_action(self, query):
         """Generate a simulated reasoning action based on query content"""
