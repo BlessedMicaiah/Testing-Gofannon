@@ -136,4 +136,7 @@ def serve_static(path):
 
 if __name__ == '__main__':
     print("Starting Advanced Agent Backend Server...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Get port from environment variable for Render compatibility
+    port = int(os.environ.get("PORT", 5000))
+    # In production, don't use debug mode and bind to 0.0.0.0
+    app.run(host='0.0.0.0', port=port, debug=False if os.environ.get("RENDER") else True)

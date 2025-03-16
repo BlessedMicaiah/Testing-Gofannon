@@ -507,7 +507,10 @@
         
         // Function to send message to backend
         function sendToBackend(message) {
-            fetch('http://localhost:5000/api/agent', {
+            // Get the base URL dynamically based on environment
+            const baseUrl = window.location.origin;
+            
+            fetch(`${baseUrl}/api/agent`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

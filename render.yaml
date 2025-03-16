@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: advanced-agent-interface
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd advanced_agent_interface/backend && python server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_SEARCH_API_KEY
+        sync: false
+      - key: GOOGLE_SEARCH_ENGINE_ID
+        sync: false

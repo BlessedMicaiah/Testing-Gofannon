@@ -1,0 +1,14 @@
+# Backend server dependencies
+flask==2.0.1
+flask-cors==3.0.10
+python-dotenv==0.19.1
+
+# For ArXiv integration
+arxiv==1.4.2
+requests==2.26.0
+
+# For OpenAI integration (optional, for reasoning capabilities)
+openai==0.27.0
+
+# For Google Search integration (optional)
+google-api-python-client==2.31.0
