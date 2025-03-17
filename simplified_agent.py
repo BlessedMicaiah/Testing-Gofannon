@@ -176,6 +176,33 @@ class SimplifiedAgent:
     def execute_general(self, query):
         """Handle general queries"""
         logger.info(f"Executing general query: {query}")
+        
+        # Special handling for common queries
+        query_lower = query.lower()
+        
+        # Special handling for testing and greeting queries
+        if query_lower in ["testing", "test", "hello", "hi"]:
+            response = """I can help you with various types of questions:
+            
+1. Math questions - Try asking "Calculate 25 + 17" or "What is 8 times 9?"
+2. Search queries - Try asking "Search for information about artificial intelligence"
+
+What would you like to know about?"""
+            logger.info(f"Special response for '{query}': {response}")
+            return response
+        
+        # For very short queries that might be just a single word or country name
+        elif len(query_lower.split()) <= 2:
+            response = f"""I notice you've asked about "{query}". I can provide more information if you ask a more specific question.
+
+Try asking something like:
+1. "Tell me about {query}"
+2. "Search for information about {query}"
+3. "Calculate 25 + 17" (for math questions)"""
+            logger.info(f"Short query response for '{query}': {response}")
+            return response
+        
+        # Default general response
         response = f"I received your question: '{query}'. This is a simplified version of the agent that only handles math and search queries. Try asking a math question like 'What is 5 plus 7?' or a search query like 'Search for information about artificial intelligence'."
         logger.info(f"General response: {response}")
         return response
