@@ -5,21 +5,60 @@ This script demonstrates a more advanced agent with multiple tools and reasoning
 """
 import os
 import re
+import sys
 import json
+import logging
+import traceback
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
+
+# Add the current directory to the Python path to ensure imports work
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-# Import Gofannon tools
-from gofannon.basic_math.addition import Addition
-from gofannon.basic_math.subtraction import Subtraction
-from gofannon.basic_math.multiplication import Multiplication
-from gofannon.basic_math.division import Division
-from gofannon.basic_math.exponents import Exponents
-from gofannon.reasoning.sequential_cot import SequentialCoT
-from gofannon.arxiv.search import Search as ArxivSearch
+# Try importing Gofannon tools with better error handling
+try:
+    logger.info("Importing Gofannon tools...")
+    # Import Gofannon tools
+    from gofannon.basic_math.addition import Addition
+    from gofannon.basic_math.subtraction import Subtraction
+    from gofannon.basic_math.multiplication import Multiplication
+    from gofannon.basic_math.division import Division
+    from gofannon.basic_math.exponents import Exponents
+    from gofannon.reasoning.sequential_cot import SequentialCoT
+    from gofannon.arxiv.search import Search as ArxivSearch
+    logger.info("Successfully imported Gofannon tools")
+except ImportError as e:
+    logger.error(f"Error importing Gofannon tools: {str(e)}")
+    logger.error(f"Import error traceback: {traceback.format_exc()}")
+    logger.error(f"Current Python path: {sys.path}")
+    logger.error(f"Current working directory: {os.getcwd()}")
+    # Define fallback classes if imports fail
+    class DummyTool:
+        def __init__(self):
+            pass
+        def run(self, *args, **kwargs):
+            return "This tool is not available due to import errors."
+    
+    Addition = DummyTool
+    Subtraction = DummyTool
+    Multiplication = DummyTool
+    Division = DummyTool
+    Exponents = DummyTool
+    SequentialCoT = DummyTool
+    ArxivSearch = DummyTool
 
 class AdvancedAgent:
     """

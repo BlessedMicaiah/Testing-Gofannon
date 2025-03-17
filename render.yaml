@@ -2,7 +2,7 @@ services:
   - type: web
     name: advanced-agent-interface
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && pip install -e .
     startCommand: python server.py
     envVars:
       - key: PYTHON_VERSION
@@ -17,3 +17,7 @@ services:
         value: "true"
       - key: ENABLE_ENHANCED_ARXIV
         value: "true"
+      - key: RENDER
+        value: "true"
+      - key: PYTHONPATH
+        value: "."

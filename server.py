@@ -12,6 +12,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 
+# Add the current directory to the Python path to ensure imports work
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 # Load environment variables from .env file if present
 load_dotenv()
 
@@ -31,6 +34,8 @@ ENABLE_ENHANCED_ARXIV = os.getenv("ENABLE_ENHANCED_ARXIV", "true").lower() == "t
 
 logger.info(f"USE_ADVANCED_AGENT: {USE_ADVANCED_AGENT}")
 logger.info(f"ENABLE_ENHANCED_ARXIV: {ENABLE_ENHANCED_ARXIV}")
+logger.info(f"Current Python path: {sys.path}")
+logger.info(f"Current working directory: {os.getcwd()}")
 
 # Import the enhanced ArXiv search if enabled
 enhanced_search = None
@@ -42,19 +47,28 @@ if ENABLE_ENHANCED_ARXIV:
         logger.info("Successfully imported EnhancedArxivSearch")
     except ImportError as e:
         logger.warning(f"Failed to import EnhancedArxivSearch: {str(e)}")
+        logger.warning(f"Import error traceback: {traceback.format_exc()}")
         enhanced_search = None
 
 # Import the appropriate agent based on configuration
-if USE_ADVANCED_AGENT:
-    logger.info("Importing AdvancedAgent...")
-    from advanced_agent import AdvancedAgent
-    agent_class = AdvancedAgent
-    logger.info("Successfully imported AdvancedAgent")
-else:
-    logger.info("Importing SimplifiedAgent (USE_ADVANCED_AGENT is disabled)...")
+try:
+    if USE_ADVANCED_AGENT:
+        logger.info("Importing AdvancedAgent...")
+        from advanced_agent import AdvancedAgent
+        agent_class = AdvancedAgent
+        logger.info("Successfully imported AdvancedAgent")
+    else:
+        logger.info("Importing SimplifiedAgent (USE_ADVANCED_AGENT is disabled)...")
+        from simplified_agent import SimplifiedAgent
+        agent_class = SimplifiedAgent
+        logger.info("Successfully imported SimplifiedAgent")
+except ImportError as e:
+    logger.error(f"Failed to import agent: {str(e)}")
+    logger.error(f"Import error traceback: {traceback.format_exc()}")
+    # Fall back to SimplifiedAgent if AdvancedAgent fails
+    logger.info("Falling back to SimplifiedAgent due to import error")
     from simplified_agent import SimplifiedAgent
     agent_class = SimplifiedAgent
-    logger.info("Successfully imported SimplifiedAgent")
 
 app = Flask(__name__, static_folder='advanced_agent_interface/backend/static')
 CORS(app)  # Enable CORS for all routes
@@ -99,13 +113,8 @@ def query_agent():
         # Process the query using our agent
         logger.info(f"Processing query with {agent_class.__name__}")
         
-        # Use the appropriate method based on the agent type
-        if hasattr(agent, 'process_query'):
-            # SimplifiedAgent
-            result = agent.process_query(query)
-        else:
-            # AdvancedAgent
-            result = agent.run(query)
+        # Always use the AdvancedAgent's run method
+        result = agent.run(query)
             
         logger.info(f"Agent response: {result}")
         return jsonify({'response': result})
