@@ -53,10 +53,10 @@ if ENABLE_ENHANCED_ARXIV:
 # Import the appropriate agent based on configuration
 try:
     if USE_ADVANCED_AGENT:
-        logger.info("Importing SimplifiedAdvancedAgent...")
-        from simplified_advanced_agent import SimplifiedAdvancedAgent
-        agent_class = SimplifiedAdvancedAgent
-        logger.info("Successfully imported SimplifiedAdvancedAgent")
+        logger.info("Importing AdvancedAgent...")
+        from advanced_agent import AdvancedAgent
+        agent_class = AdvancedAgent
+        logger.info("Successfully imported AdvancedAgent")
     else:
         logger.info("Importing SimplifiedAgent (USE_ADVANCED_AGENT is disabled)...")
         from simplified_agent import SimplifiedAgent
@@ -151,9 +151,9 @@ def search_papers():
             return jsonify({'results': results})
         
         # Fall back to the agent's search if enhanced search is not available
-        elif isinstance(agent, SimplifiedAdvancedAgent):
+        elif isinstance(agent, AdvancedAgent):
             # AdvancedAgent
-            logger.info(f"Processing search query with SimplifiedAdvancedAgent")
+            logger.info(f"Processing search query with AdvancedAgent")
             try:
                 # Parse the query for knowledge search
                 parsed_query = agent._parse_knowledge_query(query)
@@ -177,7 +177,7 @@ def search_papers():
                 
                 return jsonify({'results': formatted_results})
             except Exception as inner_e:
-                logger.error(f"Error in SimplifiedAdvancedAgent search: {str(inner_e)}", exc_info=True)
+                logger.error(f"Error in AdvancedAgent search: {str(inner_e)}", exc_info=True)
                 # Fall back to text query if knowledge search fails
                 search_query = "search for " + query
                 result = agent.run(search_query)

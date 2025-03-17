@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simple Backend server for Advanced AI Agent Interface
-This script creates a Flask server that interfaces with the simplified_advanced_agent.py functionality
+This script creates a Flask server that interfaces with the advanced_agent.py functionality
 """
 import sys
 import os
@@ -20,16 +20,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Add parent directory to path so we can import the simplified_advanced_agent module
+# Add parent directory to path so we can import the advanced_agent module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from simplified_advanced_agent import SimplifiedAdvancedAgent
+from advanced_agent import AdvancedAgent
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
 
 # Initialize the Advanced Agent
-logger.info("Initializing SimplifiedAdvancedAgent...")
-agent = SimplifiedAdvancedAgent()
+logger.info("Initializing AdvancedAgent...")
+agent = AdvancedAgent()
 
 @app.route('/')
 def index():
@@ -61,7 +61,7 @@ def query_agent():
     
     try:
         # Process the query using our advanced agent
-        logger.info(f"Processing query with SimplifiedAdvancedAgent: {query}")
+        logger.info(f"Processing query with AdvancedAgent: {query}")
         result = agent.run(query)
         logger.info(f"Query response: {result}")
         return jsonify({'response': result})
@@ -80,7 +80,7 @@ def search_papers():
     
     try:
         # Use our advanced agent's search functionality
-        logger.info(f"Processing search query with SimplifiedAdvancedAgent: {query}")
+        logger.info(f"Processing search query with AdvancedAgent: {query}")
         search_query = "search " + query
         result = agent.run(search_query)
         logger.info(f"Search response: {result}")
@@ -109,7 +109,7 @@ def serve_static(path):
     return send_from_directory('static', path)
 
 if __name__ == '__main__':
-    logger.info("Starting SimplifiedAdvanced Agent Backend Server...")
+    logger.info("Starting Advanced Agent Backend Server...")
     # Get port from environment variable for Render compatibility
     port = int(os.environ.get("PORT", 5000))
     # In production, don't use debug mode and bind to 0.0.0.0

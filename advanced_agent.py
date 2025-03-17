@@ -11,6 +11,7 @@ import logging
 import traceback
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
+import requests
 
 # Add the current directory to the Python path to ensure imports work
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -67,8 +68,35 @@ class AdvancedAgent:
     """
     
     def __init__(self):
-        """Initialize the agent with various tools"""
-        print("Initializing AdvancedAgent...")
+        """Initialize the agent with various tools and capabilities"""
+        logger.info("Initializing AdvancedAgent...")
+        
+        # Print Python path and working directory for debugging
+        logger.info(f"Python path: {sys.path}")
+        logger.info(f"Working directory: {os.getcwd()}")
+        
+        # Initialize available tools dictionary
+        self.available_tools = {
+            "math": True,
+            "reasoning": False,
+            "search": False,
+            "knowledge": False
+        }
+        
+        # Initialize tools
+        self._initialize_openai()
+        self._initialize_search_tools()
+        self._initialize_knowledge_tools()
+        
+        # Track whether we have API keys for certain services
+        self.has_openai_key = bool(os.getenv("OPENAI_API_KEY"))
+        self.has_google_search = (
+            bool(os.getenv("GOOGLE_SEARCH_API_KEY")) and
+            bool(os.getenv("GOOGLE_SEARCH_ENGINE_ID"))
+        )
+        
+        # Update available tools based on API keys
+        self.available_tools["reasoning"] = self.has_openai_key
         
         # Initialize math tools
         self.math_tools = {
@@ -89,23 +117,57 @@ class AdvancedAgent:
             "arxiv": ArxivSearch()
         }
         
-        # Track whether we have API keys for certain services
+        # Print status
+        self._print_status()
+    
+    def _initialize_openai(self):
+        """Initialize OpenAI tools"""
+        logger.info("Initializing OpenAI tools...")
+        
+        # Check if we have OpenAI API keys
         self.has_openai_key = bool(os.getenv("OPENAI_API_KEY"))
+        
+        if self.has_openai_key:
+            logger.info("OpenAI API key found, enabling reasoning tools")
+            self.available_tools["reasoning"] = True
+        else:
+            logger.warning("OpenAI API key not found, reasoning tools will be limited")
+            # Still set reasoning to True since we'll provide a fallback mechanism
+            self.available_tools["reasoning"] = True
+            
+        # Log the API key status (without revealing the actual keys)
+        logger.info(f"OPENAI_API_KEY present: {bool(os.getenv('OPENAI_API_KEY'))}")
+    
+    def _initialize_search_tools(self):
+        """Initialize search tools"""
+        logger.info("Initializing search tools...")
+        
+        # Check if we have Google Search API keys
         self.has_google_search = (
             bool(os.getenv("GOOGLE_SEARCH_API_KEY")) and
             bool(os.getenv("GOOGLE_SEARCH_ENGINE_ID"))
         )
         
-        # Track available tools
-        self.available_tools = {
-            "math": True,
-            "reasoning": self.has_openai_key,
-            "search": self.has_google_search,
-            "knowledge": True  # ArXiv doesn't need API keys
-        }
+        if self.has_google_search:
+            logger.info("Google Search API keys found, enabling search tools")
+            self.available_tools["search"] = True
+        else:
+            logger.warning("Google Search API keys not found, search tools will be limited")
+            # Still set search to True since we'll provide a fallback mechanism
+            self.available_tools["search"] = True
+            
+        # Log the API key status (without revealing the actual keys)
+        logger.info(f"GOOGLE_SEARCH_API_KEY present: {bool(os.getenv('GOOGLE_SEARCH_API_KEY'))}")
+        logger.info(f"GOOGLE_SEARCH_ENGINE_ID present: {bool(os.getenv('GOOGLE_SEARCH_ENGINE_ID'))}")
+    
+    def _initialize_knowledge_tools(self):
+        """Initialize knowledge tools"""
+        logger.info("Initializing knowledge tools...")
         
-        # Print status
-        self._print_status()
+        # ArXiv doesn't require API keys
+        self.available_tools["knowledge"] = True
+        
+        logger.info("ArXiv knowledge tools enabled")
     
     def _print_status(self):
         """Print the status of available tools"""
@@ -293,7 +355,7 @@ What would you like to know about?"""
             return "perform the mathematical operation implied in the query"
         elif any(term in query.lower() for term in ["explain", "why", "how", "what is"]):
             return "provide an explanation about the concept mentioned in the query"
-        elif any(term in query.lower() for term in ["find", "search", "look up"]):
+        elif any(term in query_lower for term in ["find", "search", "look up"]):
             return "search for relevant information about the topic"
         else:
             return "analyze the query to determine the best approach to answer it"
@@ -304,7 +366,7 @@ What would you like to know about?"""
             return "I would provide the mathematical result after performing the calculation"
         elif any(term in query.lower() for term in ["explain", "why", "how", "what is"]):
             return "I would provide a clear explanation of the concept, with relevant examples if helpful"
-        elif any(term in query.lower() for term in ["find", "search", "look up"]):
+        elif any(term in query_lower for term in ["find", "search", "look up"]):
             return "I would present the most relevant information found during the search"
         else:
             return "I would provide a comprehensive answer addressing all aspects of the query"
@@ -420,6 +482,94 @@ What would you like to know about?"""
                 ],
                 "simulation_note": "These are simulated results. Set up API keys for real search functionality."
             }
+    
+    def _process_search_query(self, query):
+        """Process a search query"""
+        logger.info(f"Processing search query: {query}")
+        
+        # Extract the search terms
+        search_query = query.lower().replace("search", "").replace("find", "").replace("look up", "").strip()
+        logger.info(f"Extracted search terms: {search_query}")
+        
+        # If we have Google Search API keys, use them
+        if self.has_google_search:
+            try:
+                logger.info("Using Google Search API")
+                # Get API key and search engine ID from environment variables
+                api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+                search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+                
+                # Construct the API URL
+                url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={search_engine_id}&q={search_query}"
+                logger.info(f"Making request to Google Custom Search API")
+                
+                # Make the request
+                response = requests.get(url)
+                results = response.json()
+                
+                # Check if there are search results
+                if "items" not in results:
+                    logger.warning(f"No search results found for: {search_query}")
+                    return f"No results found for '{search_query}'."
+                
+                # Format the top 3 results
+                formatted_results = f"Here are the top search results for '{search_query}':\n\n"
+                
+                for i, item in enumerate(results["items"][:3], 1):
+                    title = item.get("title", "No title")
+                    link = item.get("link", "No link")
+                    snippet = item.get("snippet", "No description")
+                    
+                    formatted_results += f"{i}. **{title}**\n"
+                    formatted_results += f"   {snippet}\n"
+                    formatted_results += f"   URL: {link}\n\n"
+                
+                logger.info(f"Formatted {len(results['items'][:3])} search results")
+                return formatted_results
+                
+            except Exception as e:
+                logger.error(f"Error during Google search: {str(e)}", exc_info=True)
+                # Fall back to simulated search results
+                logger.info("Falling back to simulated search results")
+        
+        # If we don't have Google Search API keys or if there was an error, provide simulated results
+        logger.info("Using simulated search results")
+        return self._provide_simulated_search_results(search_query)
+    
+    def _provide_simulated_search_results(self, query):
+        """Provide simulated search results when API keys are not available"""
+        logger.info(f"Generating simulated search results for: {query}")
+        
+        # Format the query for better display
+        formatted_query = query.strip().title()
+        
+        # Generate simulated search results
+        results = f"Here are some search results for '{query}':\n\n"
+        
+        results += f"1. **{formatted_query}: A Comprehensive Guide**\n"
+        results += f"   This comprehensive guide covers everything you need to know about {query}, including history, applications, and future developments.\n"
+        results += f"   URL: https://example.com/guide-to-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"2. **The Complete History of {formatted_query}**\n"
+        results += f"   Learn about the origins and evolution of {query} through the ages, with insights from leading experts in the field.\n"
+        results += f"   URL: https://example.com/history-of-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"3. **Latest Research on {formatted_query} (2025)**\n"
+        results += f"   Discover the most recent scientific breakthroughs and research findings related to {query}, published in leading academic journals.\n"
+        results += f"   URL: https://example.com/research-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"4. **{formatted_query} for Beginners: Getting Started**\n"
+        results += f"   A beginner-friendly introduction to {query} with practical examples and step-by-step tutorials for newcomers.\n"
+        results += f"   URL: https://example.com/beginners-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"5. **Top 10 Applications of {formatted_query} in Modern Industry**\n"
+        results += f"   Explore how {query} is being applied across various industries to solve real-world problems and drive innovation.\n"
+        results += f"   URL: https://example.com/applications-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += "Note: These are simulated search results. For actual web search results, please configure the Google Search API keys in your environment variables."
+        
+        logger.info("Generated simulated search results")
+        return results
     
     def format_math_response(self, query, results):
         """Format a response for math queries"""
@@ -611,48 +761,74 @@ What would you like to know about?"""
         return response
     
     def run(self, query):
-        """
-        Run the agent with a user query
+        """Process a query and return a response"""
+        logger.info(f"Processing query: {query}")
         
-        Args:
-            query (str): The user's query
+        # Special handling for very short queries
+        query_lower = query.lower()
+        
+        # Special handling for testing and greeting queries
+        if query_lower in ["testing", "test", "hello", "hi"]:
+            response = """I can help you with various types of questions:
             
-        Returns:
-            str: Response to the query
-        """
-        print("\n" + "="*50)
-        print(f"Processing query: {query}")
+1. Math questions - Try asking "Calculate 25 + 17" or "What is 8 times 9?"
+2. Research paper searches - Try asking "Find research papers about quantum computing"
+3. General knowledge questions - Try asking "Tell me about artificial intelligence"
+
+What would you like to know about?"""
+            logger.info(f"Special response for '{query}': {response}")
+            return response
         
-        # Step 1: Parse the query
-        parsed_query = self.parse_query(query)
-        print(f"Query type: {parsed_query['type']}")
-        
-        # Step 2: Execute the appropriate tools
-        query_type = parsed_query["type"]
-        if query_type == "math":
-            results = self.execute_math(parsed_query)
-            response = self.format_math_response(query, results)
-        
-        elif query_type == "reasoning":
-            results = self.execute_reasoning(parsed_query)
-            response = self.format_reasoning_response(query, results)
-        
-        elif query_type == "search":
-            results = self.execute_search(parsed_query)
-            response = self.format_search_response(query, results)
+        # For very short queries that might be just a single word
+        elif len(query_lower.split()) <= 2:
+            response = f"""I notice you've asked about "{query}". I can provide more information if you ask a more specific question.
+
+Try asking something like:
+1. "Tell me about {query}"
+2. "What is {query} used for?"
+3. "Find research papers about {query}"
+4. "Calculate 25 + 17" (for math questions)"""
+            logger.info(f"Short query response for '{query}': {response}")
+            return response
             
-        elif query_type == "knowledge":
-            parsed_knowledge = self._parse_knowledge_query(query)
-            results = self.execute_knowledge(parsed_knowledge)
-            response = self.format_knowledge_response(query, results)
-        
-        else:
-            response = "I'm not sure how to process this type of query."
-        
-        print("Response generated")
-        print("="*50)
-        
-        return response
+        # Regular query processing
+        try:
+            # Parse the query to determine type and extract relevant information
+            parsed_query = self.parse_query(query)
+            logger.info(f"Parsed query: {parsed_query}")
+            
+            query_type = parsed_query["type"]
+            logger.info(f"Query type determined: {query_type}")
+            
+            # Process based on query type
+            if query_type == "math":
+                results = self.execute_math(parsed_query)
+                response = self.format_math_response(query, results)
+            
+            elif query_type == "reasoning":
+                results = self.execute_reasoning(parsed_query)
+                response = self.format_reasoning_response(query, results)
+            
+            elif query_type == "search":
+                results = self._process_search_query(query)
+                response = results
+            
+            elif query_type == "knowledge":
+                parsed_knowledge = self._parse_knowledge_query(query)
+                results = self.execute_knowledge(parsed_knowledge)
+                response = self.format_knowledge_response(query, results)
+                
+            else:
+                # Default to reasoning
+                results = self.execute_reasoning(parsed_query)
+                response = self.format_reasoning_response(query, results)
+            
+            logger.info(f"Generated response for query type '{query_type}'")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error processing query: {str(e)}", exc_info=True)
+            return f"I encountered an error while processing your query: {str(e)}"
     
     def parse_query(self, query):
         """
