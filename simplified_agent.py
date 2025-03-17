@@ -35,10 +35,10 @@ class SimplifiedAgent:
             bool(os.getenv("GOOGLE_SEARCH_ENGINE_ID"))
         )
         
-        # Track available tools
+        # Track available tools - always enable search with fallback mechanism
         self.available_tools = {
             "math": True,
-            "search": self.has_google_search
+            "search": True  # Always enable search, we'll use fallback if no API keys
         }
         
         # Print status
@@ -48,12 +48,13 @@ class SimplifiedAgent:
         """Print the status of available tools"""
         logger.info("\nAgent Status:")
         logger.info(f"  Math Tools: Available")
-        logger.info(f"  Search Tools: {'Available' if self.available_tools['search'] else 'Unavailable (requires API keys)'}")
+        logger.info(f"  Search Tools: Available (using {'Google API' if self.has_google_search else 'simulated results'})")
         
         if not self.has_google_search:
-            logger.info("\nNote: For full functionality, set these environment variables in a .env file:")
+            logger.info("\nNote: For full search functionality, set these environment variables in a .env file:")
             logger.info("  GOOGLE_SEARCH_API_KEY=your_google_search_api_key_here")
             logger.info("  GOOGLE_SEARCH_ENGINE_ID=your_google_search_engine_id_here")
+            logger.info("  Using simulated search results as fallback.")
     
     def _determine_query_type(self, query):
         """Determine the type of query based on content"""
@@ -128,50 +129,90 @@ class SimplifiedAgent:
     def execute_search(self, query):
         """Execute a search query using Google Custom Search"""
         logger.info(f"Executing search query: {query}")
-        if not self.has_google_search:
-            logger.warning("Search functionality not available - missing API keys")
-            return "Search functionality is not available. Please set the GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID environment variables."
         
-        try:
-            # Extract the search terms
-            search_query = query.replace("search", "").replace("find", "").replace("look up", "").strip()
-            logger.info(f"Extracted search terms: {search_query}")
-            
-            # Get API key and search engine ID from environment variables
-            api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
-            search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
-            
-            # Construct the API URL
-            url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={search_engine_id}&q={search_query}"
-            logger.info(f"Making request to Google Custom Search API")
-            
-            # Make the request
-            response = requests.get(url)
-            results = response.json()
-            
-            # Check if there are search results
-            if "items" not in results:
-                logger.warning(f"No search results found for: {search_query}")
-                return f"No results found for '{search_query}'."
-            
-            # Format the top 3 results
-            formatted_results = "Here are the top search results:\n\n"
-            
-            for i, item in enumerate(results["items"][:3], 1):
-                title = item.get("title", "No title")
-                link = item.get("link", "No link")
-                snippet = item.get("snippet", "No description")
+        # Extract the search terms
+        search_query = query.replace("search", "").replace("find", "").replace("look up", "").strip()
+        logger.info(f"Extracted search terms: {search_query}")
+        
+        # Check if we have Google Search API keys
+        if self.has_google_search:
+            try:
+                # Get API key and search engine ID from environment variables
+                api_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+                search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
                 
-                formatted_results += f"{i}. **{title}**\n"
-                formatted_results += f"   {snippet}\n"
-                formatted_results += f"   URL: {link}\n\n"
-            
-            logger.info(f"Formatted {len(results['items'][:3])} search results")
-            return formatted_results
-            
-        except Exception as e:
-            logger.error(f"Error during search: {str(e)}", exc_info=True)
-            return f"An error occurred while searching: {str(e)}"
+                # Construct the API URL
+                url = f"https://www.googleapis.com/customsearch/v1?key={api_key}&cx={search_engine_id}&q={search_query}"
+                logger.info(f"Making request to Google Custom Search API")
+                
+                # Make the request
+                response = requests.get(url)
+                results = response.json()
+                
+                # Check if there are search results
+                if "items" not in results:
+                    logger.warning(f"No search results found for: {search_query}")
+                    return f"No results found for '{search_query}'."
+                
+                # Format the top 3 results
+                formatted_results = "Here are the top search results:\n\n"
+                
+                for i, item in enumerate(results["items"][:3], 1):
+                    title = item.get("title", "No title")
+                    link = item.get("link", "No link")
+                    snippet = item.get("snippet", "No description")
+                    
+                    formatted_results += f"{i}. **{title}**\n"
+                    formatted_results += f"   {snippet}\n"
+                    formatted_results += f"   URL: {link}\n\n"
+                
+                logger.info(f"Formatted {len(results['items'][:3])} search results")
+                return formatted_results
+                
+            except Exception as e:
+                logger.error(f"Error during search: {str(e)}", exc_info=True)
+                # Fall back to simulated results
+                logger.info("Falling back to simulated search results")
+                return self._provide_simulated_search_results(search_query)
+        
+        # If we don't have Google Search API keys, provide simulated results
+        logger.info("Google Search API keys not available, using simulated search results")
+        return self._provide_simulated_search_results(search_query)
+    
+    def _provide_simulated_search_results(self, query):
+        """Provide simulated search results when API keys are not available"""
+        logger.info(f"Generating simulated search results for: {query}")
+        
+        # Format the query for better display
+        formatted_query = query.strip().title()
+        
+        # Generate simulated search results
+        results = f"Here are some search results for '{query}':\n\n"
+        
+        results += f"1. **{formatted_query}: A Comprehensive Guide**\n"
+        results += f"   This comprehensive guide covers everything you need to know about {query}, including history, applications, and future developments.\n"
+        results += f"   URL: https://example.com/guide-to-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"2. **The Complete History of {formatted_query}**\n"
+        results += f"   Learn about the origins and evolution of {query} through the ages, with insights from leading experts in the field.\n"
+        results += f"   URL: https://example.com/history-of-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"3. **Latest Research on {formatted_query} (2025)**\n"
+        results += f"   Discover the most recent scientific breakthroughs and research findings related to {query}, published in leading academic journals.\n"
+        results += f"   URL: https://example.com/research-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"4. **{formatted_query} for Beginners: Getting Started**\n"
+        results += f"   A beginner-friendly introduction to {query} with practical examples and step-by-step tutorials for newcomers.\n"
+        results += f"   URL: https://example.com/beginners-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += f"5. **Top 10 Applications of {formatted_query} in Modern Industry**\n"
+        results += f"   Explore how {query} is being applied across various industries to solve real-world problems and drive innovation.\n"
+        results += f"   URL: https://example.com/applications-{query.replace(' ', '-').lower()}\n\n"
+        
+        results += "Note: These are simulated search results. For actual web search results, please configure the Google Search API keys in your environment variables."
+        
+        logger.info("Generated simulated search results")
+        return results
     
     def execute_general(self, query):
         """Handle general queries"""
