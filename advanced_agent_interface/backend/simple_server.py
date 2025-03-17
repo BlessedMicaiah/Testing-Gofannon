@@ -1,23 +1,35 @@
 #!/usr/bin/env python3
 """
 Simple Backend server for Advanced AI Agent Interface
-This script creates a Flask server that interfaces with the simplified_agent.py functionality
+This script creates a Flask server that interfaces with the simplified_advanced_agent.py functionality
 """
 import sys
 import os
 import json
+import logging
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# Add parent directory to path so we can import the simplified_agent module
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Add parent directory to path so we can import the simplified_advanced_agent module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from simplified_agent import SimplifiedAgent
+from simplified_advanced_agent import SimplifiedAdvancedAgent
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # Enable CORS for all routes
 
-# Initialize the Simplified Agent
-agent = SimplifiedAgent()
+# Initialize the Advanced Agent
+logger.info("Initializing SimplifiedAdvancedAgent...")
+agent = SimplifiedAdvancedAgent()
 
 @app.route('/')
 def index():
@@ -48,10 +60,13 @@ def query_agent():
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        # Process the query using our simplified agent
-        result = agent.process_query(query)
+        # Process the query using our advanced agent
+        logger.info(f"Processing query with SimplifiedAdvancedAgent: {query}")
+        result = agent.run(query)
+        logger.info(f"Query response: {result}")
         return jsonify({'response': result})
     except Exception as e:
+        logger.error(f"Error processing query: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/search', methods=['POST'])
@@ -64,13 +79,16 @@ def search_papers():
         return jsonify({'error': 'Query is required'}), 400
     
     try:
-        # Use our simplified agent's search functionality
+        # Use our advanced agent's search functionality
+        logger.info(f"Processing search query with SimplifiedAdvancedAgent: {query}")
         search_query = "search " + query
-        result = agent.process_query(search_query)
+        result = agent.run(search_query)
+        logger.info(f"Search response: {result}")
         
         # Return the raw result for now
         return jsonify({'results': result})
     except Exception as e:
+        logger.error(f"Error processing search query: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/tools', methods=['GET'])
@@ -82,6 +100,7 @@ def get_tools():
         }
         return jsonify(tools_info)
     except Exception as e:
+        logger.error(f"Error getting tools: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/static/<path:path>')
@@ -90,7 +109,7 @@ def serve_static(path):
     return send_from_directory('static', path)
 
 if __name__ == '__main__':
-    print("Starting Simple Agent Backend Server...")
+    logger.info("Starting SimplifiedAdvanced Agent Backend Server...")
     # Get port from environment variable for Render compatibility
     port = int(os.environ.get("PORT", 5000))
     # In production, don't use debug mode and bind to 0.0.0.0
